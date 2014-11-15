@@ -23,68 +23,35 @@
 (defn rainy [entry]
   (if (> (rainLevel entry) 0) true false))
 
-(defn addToLastPeriod [x y]
-  [(conj (butlast x) (conj (last x) y))])
-
-(defn addToEmptyPeriod [x y]
-  [(conj (butlast x) (conj (last (last x)) y))])
-
-(addToLastPeriod [[[1]]] [2])
-(addToEmptyPeriod [[[]]] [2])
-
-(defn createNewPeriod [x y]
-  (conj x [y]))
-
-(createNewPeriod [[[1] [2]]] [3])
-
-;Create new periods if x y is different places. Or not raining
-(defn noCreatedPeriods [x] (empty? (last (last x))))
-
-(empty? (last (last [[[]]])))
-
-(def rolldal ["RØLDAL" "01.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"])
-(def moss ["MOSS" "01.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"])
-
-(defn lastEntry [x] (last (last x)))
-
-(defn newPlace [x y] (= (location (lastEntry x))
-                        (location y)))
-
-(location (lastEntry [[rolldal]]))
-
-(newPlace [[rolldal]] moss)
-
-(defn compareFunc [x y]
-  (do (println (str "processing" (lastEntry x))
-  (if(noCreatedPeriods x)
-    (do
-      (println "add to empty period")
-      (println (str "created:" (addToEmptyPeriod x y)))
-      (addToEmptyPeriod x y))
-    ;if new place and raining start building new period
-    (if(and (rainy (lastEntry x)) (rainy y))
-      (do (println "They're consecutive rainy days.")(addToLastPeriod x y))
-      ;if it's not consecutive and raining create new period
-      (if(and (not (consecutiveDay (lastEntry x) y)) (rainy y))
-        (do
-          (println "not consecutive, but raining")
-          (createNewPeriod x y)) x))))))
-
 (defn parseTime [entry]
   (let [custom-formatter (f/formatter "dd.MM.YYYY")]
     (f/parse custom-formatter (nth entry 1))))
 
 (defn consecutiveDay [entry1 entry2]
-  (= (t/plus (parseTime entry1) (t/days 1)) (parseTime entry2)))
+  (or (= (t/plus (parseTime entry1) (t/days 1)) (parseTime entry2))
+      (= (t/minus (parseTime entry1) (t/days 1)) (parseTime entry2))))
 
-(def data [["RØLDAL" "01.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"]
-  ["RØLDAL" "02.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"]
-  ["RØLDAL" "05.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"]])
+(def listOfPlaces (partition-by (fn [entry] (nth entry 0)) (rest csv)))
 
-(def data (lazy-seq [["RØLDAL" "01.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"]
-  ["RØLDAL" "02.01.1960" "-" "-" "-" "15" "25" "4" "Regn.snø.sludd"]
-  ["RØLDAL" "03.01.1960" "-" "-" "-" "19.9" "25" "4" "Regn.snø.sludd"]]))
+(def rolldal (nth listOfPlaces 0))
 
-(reduce compareFunc [[[]]] data)
+(defn rainyEntries [place] (filter #(> (convertToNumeric (rainLevel %)) 0) place))
 
-(consecutiveDay (first data) (second data))
+(defn addToLastPeriod [x y]
+  (vec (conj (butlast x) (vec (conj (last x) y)))))
+
+(defn createNewPeriod [x y]
+  (vec (conj x [y])))
+
+(defn rainyPeriods [raindata] (reduce
+ (fn [x y]
+   (if(= [[[]]] x)
+     (addToLastPeriod (last (last x)) y)
+     (if(consecutiveDay (last (last x)) y)
+       (do (println "addingToLastperiod")
+         (addToLastPeriod x y))
+        (createNewPeriod x y))))
+ [[[]]]
+ raindata))
+
+(rainyPeriods (take 5 (rainyEntries rolldal)))
