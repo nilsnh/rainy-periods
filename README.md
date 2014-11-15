@@ -7,8 +7,8 @@ A simple project where I played around with some weather data. There were two qu
 
 ## Usage
 
-1. Download the project using ´git clone´
-2. Tests may be run with ´lein test´.
+1. Download the project using `git clone`
+2. Tests may be run with `lein test`. What is Lein you say? [Here you go. :)](http://leiningen.org/)
 
 ## License
 
