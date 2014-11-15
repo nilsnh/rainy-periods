@@ -1,7 +1,5 @@
-; Finn mest regnfulle dag,
-; lengste periode med regn
 
-(ns weather-data.core
+(ns weather-data.rainiestday
   (:require [clojure.data.csv :as csv]
          [clojure.java.io :as io]))
 
@@ -17,8 +15,6 @@
 (defn compareFunc [x y]
   (letfn [(rainLevel [entry] (convertToNum (nth entry 5)))]
     (if(> (rainLevel x) (rainLevel y)) x y)))
-
-(first csv)
 
 (reduce compareFunc csv)
 
