@@ -9,41 +9,43 @@
   (doall
     (csv/read-csv in-file))))
 
-(defn convertToNumeric [x]
+(defn convert-to-double [x]
   (try (Double. x)
     (catch Exception e 0)))
 
-(defn parseTime [entry]
+(defn parse-time [entry]
   (let [custom-formatter (f/formatter "dd.MM.YYYY")]
     (f/parse custom-formatter (nth entry 1))))
 
-(defn consecutiveDay [entry1 entry2]
+(defn consecutive-day? [entry1 entry2]
   (or (empty? entry1)
-   (= (t/plus (parseTime entry1) (t/days 1)) (parseTime entry2))
-   (= (t/minus (parseTime entry1) (t/days 1)) (parseTime entry2))))
+   (= (t/plus (parse-time entry1) (t/days 1)) (parse-time entry2))
+   (= (t/minus (parse-time entry1) (t/days 1)) (parse-time entry2))))
 
-(defn filterRain [place]
-  (letfn [(getRainLevel [entry] (convertToNumeric (nth entry 5)))]
-   (filter #(> (convertToNumeric (getRainLevel %)) 0) place)))
+(defn filter-rain [place]
+  (letfn [(get-rain-level [entry] (convert-to-double (nth entry 5)))]
+   (filter #(> (convert-to-double (get-rain-level %)) 0) place)))
 
-(def rainObservationsByPlace
+(def rain-observations-by-place
   (letfn [(location [entry] (nth entry 0))]
-    (partition-by location (filterRain (rest csv)))))
+    (partition-by location (filter-rain (rest csv)))))
 
-(defn findRainyPeriods
+(defn find-rainy-periods
   "Builds nested list of rainy periods: [[[<-entry->]<-rainyperiods->]]"
-  ([remaining] (findRainyPeriods [[(first remaining)]] (rest remaining)))
+  ([remaining] (find-rainy-periods [[(first remaining)]] (rest remaining)))
   ([result remaining]
-  (if(empty? remaining) result
-    (if(consecutiveDay (last (last result)) (first remaining))
-      (recur (conj (vec (butlast result)) (conj (last result) (first remaining))) (rest remaining))
-      (recur (conj result [(first remaining)]) (rest remaining))))))
+  (letfn [(add-to-lastperiod [result entry] (conj (pop result) (conj (peek result) entry)))
+          (create-new-period [result entry] (conj result [entry]))]
+    (if(empty? remaining) result
+      (if(consecutive-day? (peek (peek result)) (first remaining))
+        (recur (add-to-lastperiod result (first remaining)) (rest remaining))
+        (recur (create-new-period result (first remaining)) (rest remaining)))))))
 
-(def rainyPeriods (map findRainyPeriods rainObservationsByPlace))
+(def rainy-periods (map find-rainy-periods rain-observations-by-place))
 
-(defn findRainiestPeriod [periods]
-  (let [rainiestPeriods (map #(last (sort-by count %)) periods)]
-    (last (sort-by count rainiestPeriods))))
+(defn find-rainiest-period [periods]
+  (let [rainiest-periods (map #(last (sort-by count %)) periods)]
+    (last (sort-by count rainiest-periods))))
 
-(findRainiestPeriod rainyPeriods)
+(find-rainiest-period rainy-periods)
 
