@@ -3,7 +3,7 @@
 A simple project where I played around with some weather data. There were two questions I wanted to solve. 
 
 1. How to find the most rainy day (solved).
-2. How to find the longest continuous period of rain (unsolved).
+2. How to find the longest continuous period of rain (solved).
 
 ## Usage
 
